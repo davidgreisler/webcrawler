@@ -63,7 +63,7 @@ class Crawler:
         regex = re.compile('[%s]' % re.escape(string.punctuation)) # building regex obj on punctuation
         words = regex.sub(" ",bodyContent).split()                 #replacing punctuation with whitespace and split into single words
         words = map(unicode.lower,words)
-        self.siteContents.append((seedUrl,words))
+        #self.siteContents.append((seedUrl,words))
         #print '[%s]' % '\n '.join(map(str,words))
         
     def __validateUrl(self,seedUrl,url):
