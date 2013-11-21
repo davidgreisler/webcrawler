@@ -67,6 +67,7 @@ class Indexer(object):
         
         
     def __nomalizeDocument(self,document):
-        return (document[0],map(unicode.lower,document[1])
+        print document[1]
+        return (document[0],map(unicode.lower,document[1]))
             
         
