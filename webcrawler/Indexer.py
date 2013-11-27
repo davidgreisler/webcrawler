@@ -4,57 +4,60 @@ Created on Nov 21, 2013
 @author: prototyp
 '''
 from docutils.nodes import document
+from pprint import pprint
 
 class Indexer(object):
     '''
     classdocs
     '''
-    __siteContents = []
-    __index = {}
+    __siteContents = {}
+    __indexDf = {} #{u"term":documentFrequency,...}
+    __indexTf = {} #{u"term":[(u"document",termFrequency),(u"document",termFrequency),...}
     __stopWords = []
 
     def __init__(self,siteContents,stopWords):
         self.__siteContents = siteContents
         self.__stopWords = stopWords
-        self.__index = {(u"hund",1) :[(u"d01",5)],
-                        (u"katze",3):[(u"d03",2),(u"d04",2),(u"d02",10)],
-                        (u"baer",2) :[(u"d01",2),(u"d03",5)]         
-                        }
+
+    """
+    adds all term of a given document to the index
+    if a term is the index the document frequency will be increased in member __indexDf and the document and term frequency will be added to __indexTf 
+    if the term is not in the index a new entry will be made
+    arguments: document (u'd01', [(u'term', termFrequency), (u'term', termFrequency)], ...)
+    """
+    def __addDoctoIndex(self,document):
+        #print "Document %s"% (document,)
+        #pprint (self.__indexDf)
+        #pprint (self.__indexTf)
         
-    #normalize words
-    #remove stopwords
-    
-    def __checkDoc(self,document):
-        for word in document[1]:
-            indexKey = self.__findKey(word)
-            if indexKey != None:
-                print "gefunden "
-                newIndexKey = (indexKey[0],indexKey[1]+1)
-                newIndexValue = self.__index.pop(indexKey).append()
-                pass
+        for wordTfCount in document[1]:
+            #print "word %s"  %(word,)   
+            
+            if wordTfCount[0] in self.__indexDf:
+                self.__indexDf[wordTfCount[0]] = self.__indexDf[wordTfCount[0]] +1
+                self.__indexTf[wordTfCount[0]].append((document[0],wordTfCount[1]))
+                #print "gefunden " + wordTfCount[0] 
             else:
-                print "nicht gefunden"
-                #New index key Value anlegen
-                pass
+                #print "nicht gefunden "+ wordTfCount[0]
+                self.__indexDf.update({wordTfCount[0]:1})
+                self.__indexTf.update({wordTfCount[0]:[(document[0],wordTfCount[1])]})
     
-    def __findKey(self,searchKey):
-        for key in self.__index:
-            if key[0] == searchKey:
-                return key
-        return None    
-        
-    def buidlindex(self):
-        testDoc = [(u"d01",[u"Bla",u"hund"]),
-                   (u"d03",[u"blub",u"Bla",u"Katze"])]
-        
-        #print self.__siteContents
-        #map(self.__checkDoc,testDoc)
+    """
+    builds up the indexes for documents frequency and the index for the documents and term frequency of all terms 
+    """
+    def buidlindex(self):        
         self.__siteContents = map(self.__nomalizeDocument,self.__siteContents)
         self.__siteContents = map(self.__groupDocumentWords,self.__siteContents)
+        #print '[%s]' % '\n '.join(map(str,self.__siteContents))
+        map(self.__addDoctoIndex,self.__siteContents)
+        return (self.__indexDf,self.__indexTf)
+
         
-        print '[%s]' % '\n '.join(map(str,self.__siteContents))
-    
-    def __groupDocumentWords(self,document):
+    """
+    Group all similiar words and counts them
+    arguments: the document
+    """
+    def __groupDocumentWords(self,document): #mapReduce impl
         shrinkedDoc = []
         analysedWords = [] 
         word = ()
@@ -64,10 +67,13 @@ class Indexer(object):
                 analysedWords.append(word)        
         return (document[0],shrinkedDoc)
         
-        
-        
+       
+    """
+    Nomalises all words of a given document
+    Normalisation: make each term of the document to lower case
+    arguments: the document
+    """    
     def __nomalizeDocument(self,document):
-        print document[1]
         return (document[0],map(unicode.lower,document[1]))
             
         
