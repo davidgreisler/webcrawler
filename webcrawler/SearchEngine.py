@@ -181,12 +181,12 @@ class SearchEngine(object):
         print "Results:"
         
         for document in sorted(documents, 
-                               key = lambda url : 1000 * self._page_ranks[url] * scores[url], 
+                               key = lambda url : self._page_ranks[url] * scores[url], 
                                reverse = True):
             print "  - " + document
             print ("      (Score: " + str(scores[document]) + ""
                    ", PageRank: " + str(self._page_ranks[document]) + ""
-                   ", Combined: " + str(1000 * self._page_ranks[document] * scores[document]) + ")")
+                   ", Combined: " + str(self._page_ranks[document] * scores[document]) + ")")
     
     def _do_crawling(self):
         """
@@ -238,6 +238,7 @@ class SearchEngine(object):
         print "Computing page ranks ..."
 
         self._page_rank_computer = Computer(self._webgraph)
+        self._page_rank_computer.dampening_factor = 0.95
         self._page_rank_computer.compute()
         self._page_ranks = self._page_rank_computer.page_ranks
         
