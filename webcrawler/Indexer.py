@@ -5,6 +5,7 @@ Created on Nov 21, 2013
 '''
 from docutils.nodes import document
 from pprint import pprint
+from numpy import  *
 
 class Indexer(object):
     '''
@@ -48,11 +49,37 @@ class Indexer(object):
     def buidlindex(self):        
         self.__siteContents = map(self.__nomalizeDocument,self.__siteContents)
         self.__siteContents = map(self.__groupDocumentWords,self.__siteContents)
-        #print '[%s]' % '\n '.join(map(str,self.__siteContents))
         map(self.__addDoctoIndex,self.__siteContents)
+        self.__siteContents = map(self.__calcWeightDocuments,self.__siteContents)
+        print '[%s]' % '\n '.join(map(str,self.__siteContents))
         return (self.__indexDf,self.__indexTf)
-
+    """
+    calucaltes the td-idf value of each term and
+    """
+    def __calcWeightDocuments(self,document):
+        wordList = document[1]
+                
+        for i,word in enumerate(wordList):
+            tdidf = multiply(1+log10(float(word[1])),log10(divide(float(len(self.__siteContents)),float(self.__indexDf[word[0]]))))        
+            wordList[i] = (word[0],tdidf)
+            
+            wordDocFrequList = self.__indexTf[word[0]]
+            for i,wordDocFrequ in enumerate(wordDocFrequList):
+                if wordDocFrequ[0] == document[0]:
+                    wordDocFrequList[i] = (wordDocFrequ[0],tdidf)
+            self.__indexTf[word[0]]=wordDocFrequList     
+                     
+        return (document[0],self.__calcDocumentlength(document),wordList)
+    
+    
+    def __calcDocumentlength(self,document):
+        docWeight = 0
+        for word in document[1]:
+            docWeight = docWeight + square(word[1]) 
         
+        return sqrt(docWeight)
+    
+       
     """
     Group all similiar words and counts them
     arguments: the document

@@ -6,6 +6,7 @@ Created on Nov 19, 2013
 from Crawler import Crawler
 from Indexer import Indexer
 from pprint import pprint
+from numpy import *
 
 if __name__ == '__main__':
     seedURLS = ["http://mysql12.f4.htw-berlin.de/crawl/d01.html","http://mysql12.f4.htw-berlin.de/crawl/d06.html","http://mysql12.f4.htw-berlin.de/crawl/d08.html"]
@@ -20,5 +21,8 @@ if __name__ == '__main__':
                  'that', 'the', 'this', 'to', 'we']
     indexer = Indexer(results[1],stopWords)
     index = indexer.buidlindex() # index (indexDocumentfrequncy,indexTermFrequnecy)
-    pprint (index[0]) # indexDocumentfrequncy
+    #pprint (index[0]) # indexDocumentfrequncy
     pprint (index[1]) # indexTermFrequnecy
+
+    
+    
