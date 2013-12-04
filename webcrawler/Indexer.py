@@ -52,7 +52,7 @@ class Indexer(object):
         map(self.__addDoctoIndex,self.__siteContents)
         self.__siteContents = map(self.__calcWeightDocuments,self.__siteContents)
         print '[%s]' % '\n '.join(map(str,self.__siteContents))
-        return (self.__indexDf,self.__indexTf)
+        return (self.__indexDf,self.__indexTf,self.__siteContents)
     """
     calucaltes the td-idf value of each term and
     """
