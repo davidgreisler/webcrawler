@@ -9,8 +9,9 @@
 from Crawler import Crawler
 from Indexer import Indexer
 from PageRank import Computer
-from math import log10
+from math import log10,sqrt,pow
 from collections import defaultdict
+from bokeh.glyphs import Square
 
 class SearchEngine(object):
     """
@@ -119,6 +120,28 @@ class SearchEngine(object):
         
         documents = []
         scores = defaultdict(int)
+        querryLength = 0
+        for term in terms:
+            
+            if not term in self._term_frequency:
+                continue
+            
+             # The inverse document frequency weight is a measure of informativeness of a term and 
+            # is calculated by dividing the number of documents in the webgraph by the number of 
+            # documents the term occurs in.
+            #
+            # idf = log10(number of documents in webgraph/number of documents containing term)
+            
+            idf = log10(len(self._document_frequency) / self._document_frequency[term])
+                        
+            # The weight of a term in the query is the product of the term frequency weight and the
+            # inverse document frequency weight.
+            #
+            # tqw = (1 + log10(term frequency in the query)) * idf
+            
+            term_query_weight = (1 + log10(terms[term])) * idf;
+            querryLength = querryLength + pow(term_query_weight, 2)
+            print "querryLength " +str(querryLength)+" terms "+str(terms[term])
         
         for term in terms:
             documents_containing_term = []
@@ -143,7 +166,7 @@ class SearchEngine(object):
             term_document_weights = {}
             
             for document_and_count in self._term_frequency[term]:
-                document, count = document_and_count
+                document, count,tfidf = document_and_count
                     
                 documents_containing_term.append(document)
                     
@@ -152,7 +175,7 @@ class SearchEngine(object):
                 #
                 # tdw = (1 + log10(frequency of the term in the document)) * idf
                     
-                term_document_weights[document] = (1 + log10(count)) * idf
+                term_document_weights[document] = tfidf
             
             # Merge documents containing the term with the result list.
             
@@ -169,7 +192,7 @@ class SearchEngine(object):
         # shorter documents have scores in the same order of magnitude. 
 
         for doc in scores:
-            scores[doc] = scores[doc] / self._document_lengths[doc] 
+            scores[doc] = scores[doc] / (self._document_lengths[doc] *sqrt(querryLength))
         
         print 
         
@@ -209,12 +232,7 @@ class SearchEngine(object):
         
         self._webgraph = results[0]
         self._extracted_terms = results[1]
-        self._document_lengths = {}
-        
-        for website_and_terms in self._extracted_terms:
-            website = website_and_terms[0]
-            terms = website_and_terms[1]
-            self._document_lengths[website] = len(terms)
+
         
         #print "  Web graph: "
         #for url in self._webgraph.keys():
@@ -262,7 +280,12 @@ class SearchEngine(object):
         document frequency index.
         
         """
-        print "Building index ..."
+        print "Building index ..."        
+        
+        for website_and_terms in self._extracted_terms:
+            website = website_and_terms[0]
+            terms = website_and_terms[1]
+            self._document_lengths[website] = len(terms)
     
         self._indexer = Indexer(self._extracted_terms, self._stopwords)
         index = self._indexer.buidlindex()
@@ -270,6 +293,8 @@ class SearchEngine(object):
         self._document_frequency = index[0]
         self._term_frequency = index[1]
         self._extracted_terms = index[2]
+        self._document_lengths = index[3]
+        
 
         
         #print "  Document index:"

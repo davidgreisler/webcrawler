@@ -15,6 +15,7 @@ class Indexer(object):
     __indexDf = {} #{u"term":documentFrequency,...}
     __indexTf = {} #{u"term":[(u"document",termFrequency),(u"document",termFrequency),...}
     __stopWords = []
+    __docLength = {}
 
     def __init__(self,siteContents,stopWords):
         self.__siteContents = siteContents
@@ -52,7 +53,7 @@ class Indexer(object):
         map(self.__addDoctoIndex,self.__siteContents)
         self.__siteContents = map(self.__calcWeightDocuments,self.__siteContents)
         print '[%s]' % '\n '.join(map(str,self.__siteContents))
-        return (self.__indexDf,self.__indexTf,self.__siteContents)
+        return (self.__indexDf,self.__indexTf,self.__siteContents,self.__docLength)
     """
     calucaltes the td-idf value of each term and
     """
@@ -66,18 +67,17 @@ class Indexer(object):
             wordDocFrequList = self.__indexTf[word[0]]
             for i,wordDocFrequ in enumerate(wordDocFrequList):
                 if wordDocFrequ[0] == document[0]:
-                    wordDocFrequList[i] = (wordDocFrequ[0],tdidf)
+                    wordDocFrequList[i] = (wordDocFrequ[0],wordDocFrequ[1],tdidf)
             self.__indexTf[word[0]]=wordDocFrequList     
-                     
-        return (document[0],self.__calcDocumentlength(document),wordList)
+            self.__calcDocumentlength(document)        
+        return (document[0],wordList)
     
     
     def __calcDocumentlength(self,document):
         docWeight = 0
         for word in document[1]:
             docWeight = docWeight + square(word[1]) 
-        
-        return sqrt(docWeight)
+        self.__docLength[document[0]] = sqrt(docWeight)
     
        
     """
