@@ -12,6 +12,7 @@ from PageRank import Computer
 from math import log10,sqrt,pow
 from collections import defaultdict
 from bokeh.glyphs import Square
+from pprint import pprint
 
 class SearchEngine(object):
     """
@@ -126,7 +127,7 @@ class SearchEngine(object):
             if not term in self._term_frequency:
                 continue
             
-             # The inverse document frequency weight is a measure of informativeness of a term and 
+            # The inverse document frequency weight is a measure of informativeness of a term and 
             # is calculated by dividing the number of documents in the webgraph by the number of 
             # documents the term occurs in.
             #
@@ -141,7 +142,6 @@ class SearchEngine(object):
             
             term_query_weight = (1 + log10(terms[term])) * idf;
             querryLength = querryLength + pow(term_query_weight, 2)
-            print "querryLength " +str(querryLength)+" terms "+str(terms[term])
         
         for term in terms:
             documents_containing_term = []
@@ -234,11 +234,11 @@ class SearchEngine(object):
         self._extracted_terms = results[1]
 
         
-        #print "  Web graph: "
-        #for url in self._webgraph.keys():
-        #    print "   - " + url
-        #    for outlink in self._webgraph[url]:
-        #        print "     -> " + outlink
+        print "  Web graph: "
+        for url in self._webgraph.keys():
+            print "   - " + url
+            for outlink in self._webgraph[url]:
+                print "     -> " + outlink
         
         #print "  Extracted terms: "
         #for website in self._extracted_terms:
@@ -294,19 +294,23 @@ class SearchEngine(object):
         self._term_frequency = index[1]
         self._extracted_terms = index[2]
         self._document_lengths = index[3]
-        
+        #pprint(self._term_frequency) 
 
         
         #print "  Document index:"
         #for term in sorted(self._document_frequency):
         #    print "   - " + term + ": " + str(self._document_frequency[term]) + " times"
         
-        #print
-        #print "  Term frequency:"
-        #for term in sorted(self._term_frequency):
-        #    print "   - " + term + ":"
-        #    for document_and_count in self._term_frequency[term]:
-        #        print "      - " + document_and_count[0] + ": " + str(document_and_count[1]) + " times"
-        
+        print
+        print "  Term frequency:"
+        for term in sorted(self._term_frequency):
+            print "   - " + term + ":"
+            print "      -   Document Frequency: "+ str(self._document_frequency[term])
+            for document_and_count in self._term_frequency[term]:
+            
+                print "      - " + document_and_count[0] + ": " + str(document_and_count[1]) + " times"
+        print
+        print " Document Lengthes"
+        pprint (self._document_lengths)
         print "Index build up."
         
