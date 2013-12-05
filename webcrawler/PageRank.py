@@ -152,7 +152,7 @@ class Computer(object):
         """
         return self._pageranks
     
-    def compute(self, termination_threshold = 0.1):
+    def compute(self, termination_threshold = 0.05):
         """
         Computes the page rank for every website in the webgraph.
         
@@ -166,7 +166,7 @@ class Computer(object):
         Args:
             termination_threshold: The calculation finishes when the difference between the
                                    calculated page ranks and those from the previous step is below
-                                   this threshold (default 0.1).
+                                   this threshold (default 0.05).
         
         """
         self._pageranks = {}
@@ -176,10 +176,17 @@ class Computer(object):
         for website in self._webgraph.keys():
             self._pageranks[website] = 1.0 / len(self._webgraph)
             
+        print "            " + '     '.join("d" + str(i) for i in xrange(1, len(self.webgraph) + 1)) + "    diff"
+        print ("step 0:  [" + ' '.join("{0:.4f}".format(self._pageranks[website]) for website in sorted(self._pageranks)) + "")
+        step = 1
+        
         while True:
             # Compute new page ranks.
             
             new_page_ranks = self._compute_step()
+            
+            print ("step " + str(step) + ":  [" + ' '.join("{0:.4f}".format(new_page_ranks[website]) for website in sorted(new_page_ranks)) + " "),
+            step += 1
             
             # Are they good enough?
             
@@ -279,6 +286,6 @@ class Computer(object):
         
         for website in self._webgraph.keys():
             difference_sum += abs(self._pageranks[website] - new_page_ranks[website])
-        
+        print "{0:.4f}".format(difference_sum)
         return difference_sum <= termination_threshold
 

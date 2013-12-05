@@ -9,6 +9,8 @@
 from Crawler import Crawler
 from Indexer import Indexer
 from PageRank import Computer
+from math import log10
+from collections import defaultdict
 
 class SearchEngine(object):
     """
@@ -55,6 +57,9 @@ class SearchEngine(object):
     # occurs in that document, e.g. { 'term' : [('document', 123), ('anotherdocument', 1234)] }
     _term_frequency = {}
     
+    # A dictionary mapping websites to the length of their content (number of words).
+    _document_lengths = {}
+    
     def __init__(self, seed_urls, stopwords = None):
         """
         Initializes the search engine with the given seed urls and the given stop words and does the
@@ -73,62 +78,123 @@ class SearchEngine(object):
         self._compute_page_ranks()
         self._build_index()
         
+    def _sanitize_query(self, query):
+        """
+        Sanitizes the query by lowercasing all characters, then creates a dictionary mapping query
+        terms to occurrence count.
+        
+        Args:
+            query: The search query, terms separated by whitespace.
+            
+        Returns:
+            A dictionary mapping query terms to occurrence count.
+        
+        """
+        query_terms = query.lower().split()
+        
+        terms = {}
+        for term in query_terms:
+            if term in terms:
+                terms[term] = terms[term] + 1
+            else:
+                terms[term] = 1
+        
+        return terms
+    
     def query(self, query):
         """
-        Searches the index for every term (separated by whitespace) and prints a list of documents
-        in which all terms occur.
+        Searches the index for every term (separated by whitespace), then sorts the 
+        resulting documents by relevance using the cosine score algorithm and prints them.
         
         Args:
             query: The search query, terms separated by whitespace (all terms will be converted to
                    lowercase).
         
         """
-        terms = query.lower().split()
+        terms = self._sanitize_query(query)
         
         if not terms:
             print "No search terms entered."
             return
         
         documents = []
+        scores = defaultdict(int)
         
         for term in terms:
-            new_document_list = []
-            term_documents = []
+            documents_containing_term = []
             
-            if term in self._term_frequency:
-                for document_and_count in self._term_frequency[term]:
-                    term_documents.append(document_and_count[0])
+            if not term in self._term_frequency:
+                continue
             
-            if not documents:
-                # First search term, fill list with all documents the term occurs in or break if
-                # the term isn't found (we are looking for a document that contains all terms).
-                if not term_documents:
-                    break
-                else:
-                    new_document_list = term_documents
-            else:
-                # Another search term, only keep those documents that contain both the former terms
-                # and the current one.
-                for document in documents:
-                    if document in term_documents:
-                        new_document_list.append(document)
+            # The inverse document frequency weight is a measure of informativeness of a term and 
+            # is calculated by dividing the number of documents in the webgraph by the number of 
+            # documents the term occurs in.
+            #
+            # idf = log10(number of documents in webgraph/number of documents containing term)
             
-            documents = new_document_list
+            idf = log10(len(self._document_frequency) / self._document_frequency[term])
+                        
+            # The weight of a term in the query is the product of the term frequency weight and the
+            # inverse document frequency weight.
+            #
+            # tqw = (1 + log10(term frequency in the query)) * idf
+            
+            term_query_weight = (1 + log10(terms[term])) * idf;
+            term_document_weights = {}
+            
+            for document_and_count in self._term_frequency[term]:
+                document, count = document_and_count
+                    
+                documents_containing_term.append(document)
+                    
+                # The weight of a term in the document is the product of the weighted term frequency
+                # and the inverse document frequency weight.
+                #
+                # tdw = (1 + log10(frequency of the term in the document)) * idf
+                    
+                term_document_weights[document] = (1 + log10(count)) * idf
+            
+            # Merge documents containing the term with the result list.
+            
+            documents = list(set(documents + documents_containing_term))
+            
+            # Add the product of the term query weight and the term document weight to each 
+            # document.
+            
+            for document in documents_containing_term:
+                score = scores[document] + (term_query_weight * term_document_weights[document])
+                scores[document] = score
+        
+        # Divide the score of each document d by the length of document d, so that longer and 
+        # shorter documents have scores in the same order of magnitude. 
+
+        for doc in scores:
+            scores[doc] = scores[doc] / self._document_lengths[doc] 
         
         print 
         
         if not documents:
-            print "No documents match your search terms (\"" + str(terms) + "\")."
+            print ("No documents match your search terms (\"" 
+                   "" + ', '.join(str(term) for term in terms) + "\").")
             return
         
         print "Results:"
-        for document in sorted(documents, key = lambda url : self._page_ranks[url], reverse = True):
-            print "  - " + document + " (PageRank: " + str(self._page_ranks[document]) + ")"
+        
+        for document in sorted(documents, 
+                               key = lambda url : self._page_ranks[url] * scores[url], 
+                               reverse = True):
+            print "  - " + document
+            print ("      (Score: " + str(scores[document]) + ""
+                   ", PageRank: " + str(self._page_ranks[document]) + ""
+                   ", Combined: " + str(self._page_ranks[document] * scores[document]) + ")")
     
     def _do_crawling(self):
         """
         Initializes the crawler with the seed urls and starts crawling, then stores the resulting
         webgraph and the extracted terms in the attributes.
+        
+        Also counts the extracted words in every website and stores each website's length in the 
+        document_lengths attribute.
         
         """
         
@@ -143,6 +209,12 @@ class SearchEngine(object):
         
         self._webgraph = results[0]
         self._extracted_terms = results[1]
+        self._document_lengths = {}
+        
+        for website_and_terms in self._extracted_terms:
+            website = website_and_terms[0]
+            terms = website_and_terms[1]
+            self._document_lengths[website] = len(terms)
         
         #print "  Web graph: "
         #for url in self._webgraph.keys():
@@ -166,6 +238,7 @@ class SearchEngine(object):
         print "Computing page ranks ..."
 
         self._page_rank_computer = Computer(self._webgraph)
+        self._page_rank_computer.dampening_factor = 0.95
         self._page_rank_computer.compute()
         self._page_ranks = self._page_rank_computer.page_ranks
         
@@ -197,6 +270,7 @@ class SearchEngine(object):
         self._document_frequency = index[0]
         self._term_frequency = index[1]
         self._extracted_terms = index[2]
+
         
         #print "  Document index:"
         #for term in sorted(self._document_frequency):
